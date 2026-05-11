@@ -1,0 +1,46 @@
+# Example: self-hosted mail alongside KeeTra (reference only)
+
+KeeTra does **not** start this stack automatically. Copy and adapt for your environment.
+
+Options:
+
+- **docker-mailserver** — https://github.com/docker-mailserver/docker-mailserver  
+- **Mailu** — https://github.com/Mailu/Mailu  
+- **Mailcow** — https://github.com/mailcow/mailcow-dockerized  
+
+Below is a **minimal skeleton** showing volumes and ports; replace image and env with the upstream project’s current docs.
+
+```yaml
+# docker-compose.team-mail.example.yml (rename and customize)
+services:
+  mail:
+    image: ghcr.io/docker-mailserver/docker-mailserver:latest
+    hostname: mail
+    domainname: example.com
+    container_name: kmeet-mail
+    ports:
+      - "25:25"
+      - "587:587"
+      - "993:993"
+    volumes:
+      - maildata:/var/mail
+      - mailstate:/var/mail-state
+      - ./docker-data/dms/mail-data/:/var/mail/
+      - ./docker-data/dms/mail-state/:/var/mail-state/
+      - ./docker-data/dms/config/:/tmp/docker-mailserver/
+    environment:
+      - ENABLE_RSPAMD=1
+      - SSL_TYPE=letsencrypt
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
+volumes:
+  maildata:
+  mailstate:
+```
+
+Set KeeTra API env to match your hostname and ports:
+
+- `TEAM_MAIL_IMAP_HOST`, `TEAM_MAIL_IMAP_PORT`, `TEAM_MAIL_SMTP_HOST`, `TEAM_MAIL_SMTP_PORT`
+- `TEAM_MAIL_PROVISION_URL` → your bridge HTTP endpoint (see `example-bridge.mjs`)
