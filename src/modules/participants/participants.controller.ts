@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Patch, Post, UseGuards, Body } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { GuestMeetingScopeGuard } from '../../common/guards/guest-meeting-scope.guard';
 import { CurrentUser } from '../../common/decorators/auth-user.decorator';
 import type { AuthUser } from '../../common/interfaces/auth-user.interface';
 import { ParticipantsService } from './participants.service';
@@ -11,7 +12,7 @@ import { MeetingsService } from '../meetings/meetings.service';
 
 @ApiTags('participants')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, GuestMeetingScopeGuard)
 @Controller('meetings/:meetingId')
 export class ParticipantsController {
   constructor(

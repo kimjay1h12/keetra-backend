@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readdirSync, renameSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { toPublicUser } from '../../common/user-public';
+import { resolveAppPublicUrlFromEnv } from '../../common/util/app-public-url';
 import { ProfileUpdateInput, UsersService } from '../users/users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
@@ -114,7 +115,7 @@ export class ProfileService {
       }
     }
 
-    const configured = this.configService.get<string>('APP_PUBLIC_URL')?.trim().replace(/\/+$/, '');
+    const configured = resolveAppPublicUrlFromEnv(this.configService);
     const origin = (configured || requestPublicOrigin).replace(/\/+$/, '');
     const avatarUrl = `${origin}/uploads/profile/${userId}/${filename}`;
     const user = await this.usersService.setAvatarUrl(userId, avatarUrl);

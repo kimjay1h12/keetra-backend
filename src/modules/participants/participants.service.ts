@@ -26,9 +26,10 @@ export class ParticipantsService {
     return rows.map((r) => {
       const plain = r.toJSON() as unknown as Record<string, unknown>;
       const u = map.get(r.userId.toString());
+      const guestName = typeof plain.guestDisplayName === 'string' ? plain.guestDisplayName.trim() : '';
       return {
         ...plain,
-        displayName: u?.displayName ?? null,
+        displayName: guestName || u?.displayName?.trim() || null,
         avatarUrl: u?.avatarUrl?.trim() ? u.avatarUrl.trim() : null,
         title: u?.title?.trim() ? u.title.trim() : null,
       };
@@ -84,7 +85,22 @@ export class ParticipantsService {
   ) {
     return this.participantModel.findOneAndUpdate(
       { meetingId: new Types.ObjectId(meetingId), userId: new Types.ObjectId(userId) },
-      { state, role },
+      { state, role, $unset: { guestDisplayName: '' } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+  }
+
+  async createOrUpdateGuestParticipant(
+    meetingId: string,
+    guestUserId: string,
+    state: ParticipantState,
+    role: ParticipantRole,
+    guestDisplayName: string,
+  ) {
+    const name = guestDisplayName.trim().slice(0, 80);
+    return this.participantModel.findOneAndUpdate(
+      { meetingId: new Types.ObjectId(meetingId), userId: new Types.ObjectId(guestUserId) },
+      { state, role, guestDisplayName: name },
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
   }

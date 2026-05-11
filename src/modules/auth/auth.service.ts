@@ -29,6 +29,23 @@ export class AuthService {
     return n;
   }
 
+  /** Short-lived JWT for anonymous meeting guests (scoped to one meeting id). */
+  async signMeetingGuestAccessToken(guestUserId: string, meetingMongoId: string): Promise<string> {
+    const accessExpiresIn = this.configService.get<string>('JWT_EXPIRES_IN') ?? '8h';
+    return this.jwtService.signAsync(
+      {
+        sub: guestUserId,
+        email: 'guest@meeting.invalid',
+        typ: 'mtg_guest',
+        mid: meetingMongoId,
+      },
+      {
+        secret: this.configService.get<string>('JWT_SECRET', 'dev-secret'),
+        expiresIn: accessExpiresIn as any,
+      },
+    );
+  }
+
   private async signTokenPair(user: UserDocument) {
     const payload = { sub: user.id, email: user.email };
     const accessExpiresIn = this.configService.get<string>('JWT_EXPIRES_IN') ?? '1h';

@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { MeetingsService } from './meetings.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { GuestMeetingScopeGuard } from '../../common/guards/guest-meeting-scope.guard';
 import { CurrentUser } from '../../common/decorators/auth-user.decorator';
 import type { AuthUser } from '../../common/interfaces/auth-user.interface';
 import { CreateMeetingDto } from './dto/create-meeting.dto';
@@ -12,7 +13,7 @@ import { ResolveMeetingMongoIdPipe } from './resolve-meeting-mongo-id.pipe';
 
 @ApiTags('meetings')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, GuestMeetingScopeGuard)
 @Controller('meetings')
 export class MeetingsController {
   constructor(
@@ -22,6 +23,9 @@ export class MeetingsController {
 
   @Post()
   async create(@CurrentUser() user: AuthUser, @Body() dto: CreateMeetingDto) {
+    if (user.isGuest) {
+      throw new ForbiddenException('Guests cannot create meetings');
+    }
     const data = await this.meetingsService.create(user.id, dto);
     return { status: 'success', data };
   }
@@ -34,6 +38,9 @@ export class MeetingsController {
 
   @Get()
   async list(@CurrentUser() user: AuthUser) {
+    if (user.isGuest) {
+      throw new ForbiddenException('Guests cannot list meetings');
+    }
     const data = await this.meetingsService.listForUser(user.id);
     return { status: 'success', data };
   }

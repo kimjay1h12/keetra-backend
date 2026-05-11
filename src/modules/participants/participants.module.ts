@@ -7,6 +7,7 @@ import { Meeting, MeetingSchema } from '../meetings/schemas/meeting.schema';
 import { SignalingModule } from '../signaling/signaling.module';
 import { MeetingsModule } from '../meetings/meetings.module';
 import { UsersModule } from '../users/users.module';
+import { GuestMeetingScopeGuard } from '../../common/guards/guest-meeting-scope.guard';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { UsersModule } from '../users/users.module';
     forwardRef(() => SignalingModule),
   ],
   controllers: [ParticipantsController],
-  providers: [ParticipantsService],
+  providers: [ParticipantsService, GuestMeetingScopeGuard],
   exports: [ParticipantsService, MongooseModule],
 })
 export class ParticipantsModule {}

@@ -20,6 +20,8 @@ import { TeamsService } from '../teams/teams.service';
 import { MailService } from '../mail/mail.service';
 import { UsersService } from '../users/users.service';
 import { SignalingGateway } from '../signaling/signaling.gateway';
+import { AuthService } from '../auth/auth.service';
+import { getAppPublicBaseUrl } from '../../common/util/app-public-url';
 
 const MEETING_CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const MEETING_CODE_LEN = 9;
@@ -52,6 +54,7 @@ export class MeetingsService implements OnModuleInit, OnModuleDestroy {
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
     private readonly signalingGateway: SignalingGateway,
+    private readonly authService: AuthService,
   ) {}
 
   onModuleInit() {
@@ -238,7 +241,7 @@ export class MeetingsService implements OnModuleInit, OnModuleDestroy {
     if (!filtered.length) return;
 
     const teamName = (await this.teamsService.getTeamName(teamId)) ?? 'Your team';
-    const base = this.configService.get<string>('APP_PUBLIC_URL', 'http://localhost:3000').replace(/\/$/, '');
+    const base = getAppPublicBaseUrl(this.configService);
     const joinUrl = `${base}/meeting/${meeting.code}`;
     const when = this.formatScheduleLabel(meeting.scheduledAt);
     const hostLabel = host?.displayName?.trim() || host?.email || 'Host';
@@ -342,6 +345,36 @@ export class MeetingsService implements OnModuleInit, OnModuleDestroy {
     return meeting;
   }
 
+  async publicPreview(meetingId: string) {
+    const meeting = await this.findById(meetingId);
+    const hosts = await this.usersService.findPublicRowsByIds([meeting.hostId.toString()]);
+    const hostDisplayName = hosts[0]?.displayName?.trim() ? hosts[0].displayName.trim() : null;
+    return {
+      _id: meeting.id,
+      code: meeting.code,
+      title: meeting.title,
+      hostId: meeting.hostId.toString(),
+      visibility: meeting.visibility,
+      waitingRoomEnabled: meeting.waitingRoomEnabled,
+      chatEnabled: meeting.chatEnabled,
+      locked: meeting.locked,
+      status: meeting.status,
+      scheduledAt: meeting.scheduledAt?.toISOString?.(),
+      teamId: meeting.teamId?.toString(),
+      recurrence: meeting.recurrence,
+      recurrenceUntil: meeting.recurrenceUntil?.toISOString?.(),
+      createdAt:
+        'createdAt' in meeting && meeting.createdAt instanceof Date
+          ? meeting.createdAt.toISOString()
+          : undefined,
+      updatedAt:
+        'updatedAt' in meeting && meeting.updatedAt instanceof Date
+          ? meeting.updatedAt.toISOString()
+          : undefined,
+      hostDisplayName,
+    };
+  }
+
   async listForUser(userId: string) {
     const teamIds = await this.teamsService.listTeamIdsForUser(userId);
     const uid = new Types.ObjectId(userId);
@@ -408,6 +441,56 @@ export class MeetingsService implements OnModuleInit, OnModuleDestroy {
     );
     await this.syncEmptyRoomTimer(meetingId);
     return participant;
+  }
+
+  async joinAsGuest(meetingId: string, displayName: string, password?: string) {
+    const meeting = await this.findById(meetingId);
+
+    if (meeting.status === 'ended') {
+      throw new ForbiddenException('Meeting has ended');
+    }
+
+    if (meeting.status === 'scheduled') {
+      throw new ForbiddenException('This meeting has not started yet');
+    }
+
+    if (meeting.visibility === 'private') {
+      if (!password || !meeting.passwordHash) {
+        throw new UnauthorizedException('Meeting password required');
+      }
+      const valid = await bcrypt.compare(password, meeting.passwordHash);
+      if (!valid) {
+        throw new UnauthorizedException('Invalid meeting password');
+      }
+    }
+
+    const guestId = new Types.ObjectId().toString();
+    const current = await this.participantsService.findByMeetingAndUser(meetingId, guestId);
+    if (current?.state === 'removed') {
+      throw new ForbiddenException('You are removed from this meeting');
+    }
+
+    const hostAlreadyInCall = await this.participantsService.isHostJoined(
+      meetingId,
+      meeting.hostId.toString(),
+    );
+    const nextState: ParticipantState =
+      meeting.waitingRoomEnabled && !hostAlreadyInCall ? 'waiting' : 'joined';
+    await this.participantsService.createOrUpdateGuestParticipant(
+      meetingId,
+      guestId,
+      nextState,
+      'participant',
+      displayName,
+    );
+    await this.syncEmptyRoomTimer(meetingId);
+    const rows = await this.participantsService.listParticipants(meetingId);
+    const mine = rows.find((p) => String((p as Record<string, unknown>).userId) === guestId);
+    if (!mine) {
+      throw new NotFoundException('Participant not found after join');
+    }
+    const accessToken = await this.authService.signMeetingGuestAccessToken(guestId, meetingId);
+    return { participant: mine, accessToken };
   }
 
   async leave(meetingId: string, userId: string) {

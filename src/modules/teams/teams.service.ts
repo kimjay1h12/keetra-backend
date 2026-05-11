@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
+import { getAppPublicBaseUrl } from '../../common/util/app-public-url';
 import { MailService } from '../mail/mail.service';
 import { UsersService } from '../users/users.service';
 import { Team, TeamDocument } from './schemas/team.schema';
@@ -46,9 +47,7 @@ export class TeamsService {
     inviterName: string;
     token: string;
   }): Promise<void> {
-    const base = this.configService
-      .get<string>('APP_PUBLIC_URL', 'http://localhost:3000')
-      .replace(/\/$/, '');
+    const base = getAppPublicBaseUrl(this.configService);
     const inviteUrl = `${base}/join-team?token=${encodeURIComponent(params.token)}`;
     const safeTeam = escapeHtml(params.teamName);
     const safeInviter = escapeHtml(params.inviterName);
@@ -148,7 +147,7 @@ export class TeamsService {
       teamId: new Types.ObjectId(teamId),
       userId: new Types.ObjectId(userId),
     });
-    const base = this.configService.get<string>('APP_PUBLIC_URL', 'http://localhost:3000').replace(/\/$/, '');
+    const base = getAppPublicBaseUrl(this.configService);
     const canManageShare =
       member?.role === 'owner' || member?.role === 'admin';
     const shareLinkUrl =
@@ -167,7 +166,7 @@ export class TeamsService {
       team.shareLinkToken = uuidv4();
       await team.save();
     }
-    const base = this.configService.get<string>('APP_PUBLIC_URL', 'http://localhost:3000').replace(/\/$/, '');
+    const base = getAppPublicBaseUrl(this.configService);
     const shareLinkUrl = `${base}/join-team?token=${encodeURIComponent(team.shareLinkToken)}`;
     return { ...team.toObject(), shareLinkUrl };
   }

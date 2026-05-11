@@ -6,6 +6,7 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RejectMeetingGuestGuard } from '../../common/guards/reject-meeting-guest.guard';
 import { CurrentUser } from '../../common/decorators/auth-user.decorator';
 import type { AuthUser } from '../../common/interfaces/auth-user.interface';
 
@@ -32,7 +33,7 @@ export class AuthController {
     return { status: 'success', data };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RejectMeetingGuestGuard)
   @ApiBearerAuth('JWT-auth')
   @Post('logout')
   async logout(@CurrentUser() user: AuthUser, @Body() dto: RefreshDto) {
@@ -40,7 +41,7 @@ export class AuthController {
     return { status: 'success', data };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RejectMeetingGuestGuard)
   @ApiBearerAuth('JWT-auth')
   @Get('me')
   async me(@CurrentUser() user: AuthUser) {
@@ -48,7 +49,7 @@ export class AuthController {
     return { status: 'success', data };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RejectMeetingGuestGuard)
   @ApiBearerAuth('JWT-auth')
   @Patch('password')
   async changePassword(@CurrentUser() user: AuthUser, @Body() dto: ChangePasswordDto) {

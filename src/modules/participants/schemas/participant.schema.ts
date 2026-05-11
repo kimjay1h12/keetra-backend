@@ -27,6 +27,10 @@ export class Participant {
 
   @Prop({ default: false })
   screenSharing!: boolean;
+
+  /** When set, this row is a guest (userId is a synthetic id, not a User document). */
+  @Prop({ trim: true, maxlength: 80 })
+  guestDisplayName?: string;
 }
 
 export const ParticipantSchema = SchemaFactory.createForClass(Participant);

@@ -10,7 +10,7 @@ import * as nodemailer from 'nodemailer';
  * - SMTP_USER=your.address@gmail.com
  * - SMTP_PASS=<Google App Password> (not your normal Gmail password)
  * - SMTP_FROM="KeeTra <your.address@gmail.com>"
- * - APP_PUBLIC_URL=https://your-frontend (used in invite links)
+ * - APP_PUBLIC_URL=https://your-frontend (invite / share links; aliases: FRONTEND_PUBLIC_URL, WEB_APP_URL, PUBLIC_SITE_URL)
  */
 @Injectable()
 export class MailService {

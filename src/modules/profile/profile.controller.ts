@@ -18,6 +18,7 @@ import { randomUUID } from 'crypto';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RejectMeetingGuestGuard } from '../../common/guards/reject-meeting-guest.guard';
 import { CurrentUser } from '../../common/decorators/auth-user.decorator';
 import type { AuthUser } from '../../common/interfaces/auth-user.interface';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -36,7 +37,7 @@ function publicOriginFromRequest(req: Request): string {
 
 @ApiTags('profile')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RejectMeetingGuestGuard)
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}

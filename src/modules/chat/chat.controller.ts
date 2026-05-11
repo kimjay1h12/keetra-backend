@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { GuestMeetingScopeGuard } from '../../common/guards/guest-meeting-scope.guard';
 import { CurrentUser } from '../../common/decorators/auth-user.decorator';
 import type { AuthUser } from '../../common/interfaces/auth-user.interface';
 import { ChatService } from './chat.service';
@@ -10,7 +11,7 @@ import { ResolveMeetingMongoIdPipe } from '../meetings/resolve-meeting-mongo-id.
 
 @ApiTags('chat')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, GuestMeetingScopeGuard)
 @Controller('meetings/:meetingId/chat')
 export class ChatController {
   constructor(

@@ -6,6 +6,7 @@ import { ChatMessage, ChatMessageSchema } from './schemas/chat-message.schema';
 import { Participant, ParticipantSchema } from '../participants/schemas/participant.schema';
 import { SignalingModule } from '../signaling/signaling.module';
 import { MeetingsModule } from '../meetings/meetings.module';
+import { GuestMeetingScopeGuard } from '../../common/guards/guest-meeting-scope.guard';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { MeetingsModule } from '../meetings/meetings.module';
     forwardRef(() => SignalingModule),
   ],
   controllers: [ChatController],
-  providers: [ChatService],
+  providers: [ChatService, GuestMeetingScopeGuard],
   exports: [ChatService],
 })
 export class ChatModule {}
