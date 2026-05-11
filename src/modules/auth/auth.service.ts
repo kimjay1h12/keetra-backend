@@ -17,11 +17,11 @@ export class AuthService {
   ) {}
 
   private refreshSessionTtlSeconds(): number {
-    const raw = (this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '30d').trim();
+    const raw = (this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '90d').trim();
     const m = /^(\d+)(d|h|m|s)$/i.exec(raw);
-    if (!m) return 60 * 60 * 24 * 30;
+    if (!m) return 60 * 60 * 24 * 90;
     const n = parseInt(m[1], 10);
-    if (!Number.isFinite(n) || n < 1) return 60 * 60 * 24 * 30;
+    if (!Number.isFinite(n) || n < 1) return 60 * 60 * 24 * 90;
     const u = m[2].toLowerCase();
     if (u === 'd') return n * 86400;
     if (u === 'h') return n * 3600;
@@ -31,7 +31,7 @@ export class AuthService {
 
   /** Short-lived JWT for anonymous meeting guests (scoped to one meeting id). */
   async signMeetingGuestAccessToken(guestUserId: string, meetingMongoId: string): Promise<string> {
-    const accessExpiresIn = this.configService.get<string>('JWT_EXPIRES_IN') ?? '8h';
+    const accessExpiresIn = this.configService.get<string>('JWT_EXPIRES_IN') ?? '24h';
     return this.jwtService.signAsync(
       {
         sub: guestUserId,
@@ -48,8 +48,8 @@ export class AuthService {
 
   private async signTokenPair(user: UserDocument) {
     const payload = { sub: user.id, email: user.email };
-    const accessExpiresIn = this.configService.get<string>('JWT_EXPIRES_IN') ?? '1h';
-    const refreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '30d';
+    const accessExpiresIn = this.configService.get<string>('JWT_EXPIRES_IN') ?? '24h';
+    const refreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '90d';
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_SECRET', 'dev-secret'),
       expiresIn: accessExpiresIn as any,
