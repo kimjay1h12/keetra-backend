@@ -72,7 +72,7 @@ export class TeamsService {
     await this.mailService.sendToEach([params.to], { subject, text, html });
   }
 
-  private async assertTeamRole(
+  async assertTeamRole(
     teamId: string,
     userId: string,
     allowed: TeamMemberRole[],

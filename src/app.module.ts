@@ -16,6 +16,10 @@ import { TaskBoardsModule } from './modules/task-boards/task-boards.module';
 import { AppController } from './app.controller';
 import { RtcModule } from './modules/rtc/rtc.module';
 import { KeepaliveModule } from './modules/keepalive/keepalive.module';
+import { AiModule } from './modules/ai/ai.module';
+import { BulkEmailModule } from './modules/bulk-email/bulk-email.module';
+import { BillingDocsModule } from './modules/billing-docs/billing-docs.module';
+import { JobInterviewsModule } from './modules/job-interviews/job-interviews.module';
 
 @Module({
   imports: [
@@ -34,6 +38,7 @@ import { KeepaliveModule } from './modules/keepalive/keepalive.module';
     UsersModule,
     ProfileModule,
     TeamsModule,
+    JobInterviewsModule,
     TeamMailboxesModule,
     TaskBoardsModule,
     AuthModule,
@@ -43,6 +48,9 @@ import { KeepaliveModule } from './modules/keepalive/keepalive.module';
     ChatModule,
     RtcModule,
     KeepaliveModule,
+    AiModule,
+    BulkEmailModule,
+    BillingDocsModule,
   ],
   controllers: [AppController],
   providers: [],

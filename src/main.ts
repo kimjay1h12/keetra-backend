@@ -18,6 +18,7 @@ async function bootstrap() {
       'Authorization',
       'Accept',
       'ngrok-skip-browser-warning',
+      'X-Interview-Token',
     ],
   });
 

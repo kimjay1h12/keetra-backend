@@ -1,9 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { SESClient, SendEmailCommand, SendRawEmailCommand } from '@aws-sdk/client-ses';
 import * as nodemailer from 'nodemailer';
 
 type MailMode = 'none' | 'smtp' | 'ses';
+
+/** Binary attachment for MIME / SMTP / SES raw sends. */
+export type MailAttachmentPayload = {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+};
 
 function emailEnabledFlag(config: ConfigService): boolean {
   const flag = config.get<string>('EMAIL_ENABLED', 'false');
@@ -109,8 +116,46 @@ export class MailService {
     }
   }
 
+  /** Whether outbound email (SES/SMTP) is configured and active. */
+  isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  /** Builds a full RFC822 message (per recipient) for SES SendRawEmail. */
+  private async buildMimeBuffer(
+    to: string,
+    subject: string,
+    text: string,
+    html: string,
+    attachments?: MailAttachmentPayload[],
+  ): Promise<Buffer> {
+    const transport = nodemailer.createTransport({
+      streamTransport: true,
+      buffer: true,
+      newline: 'unix',
+    });
+    const info = await transport.sendMail({
+      from: this.from,
+      to,
+      subject,
+      text,
+      html,
+      attachments: attachments?.length
+        ? attachments.map((a) => ({
+            filename: a.filename,
+            content: a.content,
+            contentType: a.contentType,
+          }))
+        : undefined,
+    });
+    return info.message as Buffer;
+  }
+
   /** Sends the same notification to each address (no cross-recipient visibility). */
-  async sendToEach(recipients: string[], params: { subject: string; text: string; html: string }): Promise<void> {
+  async sendToEach(
+    recipients: string[],
+    params: { subject: string; text: string; html: string; attachments?: MailAttachmentPayload[] },
+  ): Promise<void> {
     const to = [...new Set(recipients.map((e) => e.trim().toLowerCase()).filter(Boolean))];
     if (!to.length) return;
     if (!this.enabled) {
@@ -118,7 +163,28 @@ export class MailService {
       return;
     }
 
+    const attachments = params.attachments?.length ? params.attachments : undefined;
+
     if (this.mode === 'ses' && this.ses) {
+      if (attachments?.length) {
+        await Promise.allSettled(
+          to.map(async (addr) => {
+            try {
+              const raw = await this.buildMimeBuffer(addr, params.subject, params.text, params.html, attachments);
+              await this.ses!.send(
+                new SendRawEmailCommand({
+                  Source: this.from,
+                  RawMessage: { Data: raw },
+                }),
+              );
+            } catch (err) {
+              this.logger.error(`SES raw send failed for ${addr}: ${params.subject}`, err);
+            }
+          }),
+        );
+        return;
+      }
+
       await Promise.allSettled(
         to.map(async (addr) => {
           try {
@@ -153,6 +219,11 @@ export class MailService {
               subject: params.subject,
               text: params.text,
               html: params.html,
+              attachments: attachments?.map((a) => ({
+                filename: a.filename,
+                content: a.content,
+                contentType: a.contentType,
+              })),
             });
           } catch (err) {
             this.logger.error(`sendMail failed for ${addr}: ${params.subject}`, err);
